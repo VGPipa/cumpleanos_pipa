@@ -12,8 +12,7 @@ const preguntas = [
     opciones: [
       { letra: "A", texto: "Mayonesa", imagen: "1A.webp" },
       { letra: "B", texto: "Golf", imagen: "1B.webp" }
-    ],
-    correctas: ["B"]
+    ]
   },
   {
     texto: "2. Pipa va de viaje a otro país y se le antoja un plato peruano ¿Cuál es el que busca?",
@@ -22,8 +21,7 @@ const preguntas = [
     opciones: [
       { letra: "A", texto: "Pollo a la brasa", imagen: "2A.webp" },
       { letra: "B", texto: "Lomo Saltado", imagen: "2B.webp" }
-    ],
-    correctas: ["B"]
+    ]
   },
   {
     texto: "3. Pipa tiene 3 mascotas, ¿Cómo se llaman 2 de ellas?",
@@ -32,8 +30,7 @@ const preguntas = [
     opciones: [
       { letra: "A", texto: "Wau Wau y Miau", imagen: null },
       { letra: "B", texto: "Michi y Rocky", imagen: null }
-    ],
-    correctas: ["B"]
+    ]
   },
   {
     texto: "4. Van a pedir comida entre todos. ¿Qué opción preferiría Pipa?",
@@ -42,8 +39,7 @@ const preguntas = [
     opciones: [
       { letra: "A", texto: "Un lugar donde sabe que hay algo que le gusta", imagen: null },
       { letra: "B", texto: "Un lugar nuevo aunque no haya probado nada", imagen: null }
-    ],
-    correctas: ["A"]
+    ]
   },
   {
     texto: "5. Hay que elegir acompañamiento para la comida. ¿Qué escogería Pipa?",
@@ -52,8 +48,7 @@ const preguntas = [
     opciones: [
       { letra: "A", texto: "Camote frito", imagen: null },
       { letra: "B", texto: "Papas fritas", imagen: null }
-    ],
-    correctas: ["B"]
+    ]
   },
   {
     texto: "6. Todos salen de una casa y, 5 minutos después, alguien pregunta si tienen todo. ¿Qué pasa con Pipa?",
@@ -62,8 +57,7 @@ const preguntas = [
     opciones: [
       { letra: "A", texto: "Revisa sus bolsillos por si acaso", imagen: "6A.webp" },
       { letra: "B", texto: "Responde que sí sin revisar demasiado", imagen: "6B.webp" }
-    ],
-    correctas: ["B"]
+    ]
   },
   {
     texto: "7. Pipa sale con mochila porque necesita llevar varias cosas. ¿Qué es más probable?",
@@ -72,8 +66,7 @@ const preguntas = [
     opciones: [
       { letra: "A", texto: "Que se olvide de meter algo en la mochila", imagen: "7A.webp" },
       { letra: "B", texto: "Que se olvide la mochila", imagen: "7B.webp" }
-    ],
-    correctas: ["B"]
+    ]
   },
   {
     texto: "8. Pipa está comiendo y todos los demás ya terminaron. ¿Qué está pasando?",
@@ -82,8 +75,7 @@ const preguntas = [
     opciones: [
       { letra: "A", texto: "Pidió más comida", imagen: null },
       { letra: "B", texto: "Se olvidó que estaba comiendo", imagen: null }
-    ],
-    correctas: ["B"]
+    ]
   },
   {
     texto: "9. Pipa está dormido y alguien quiere comprobar si realmente se durmió. ¿En qué se fija?",
@@ -92,8 +84,7 @@ const preguntas = [
     opciones: [
       { letra: "A", texto: "En si tiene los ojos abiertos", imagen: "9A.webp" },
       { letra: "B", texto: "En si tiene la boca abierta", imagen: "9B.webp" }
-    ],
-    correctas: ["A"]
+    ]
   },
   {
     texto: "10. Pipa está por salir, pero no encuentra las llaves del carro. ¿Cuál de estas opciones es más probable? (puedes marcar una o ambas)",
@@ -102,17 +93,16 @@ const preguntas = [
     opciones: [
       { letra: "A", texto: "Están dentro del carro", imagen: "10A.webp" },
       { letra: "B", texto: "Las tiene en la mano", imagen: "10B.webp" }
-    ],
-    correctas: ["A", "B"]
+    ]
   }
 ];
 
 const PUNTOS_POR_PREGUNTA = 10;
 let sesion = null;
+let tokenSesion = null;
 let inicio = 0;
 let tiempoFinal = 0;
 let reloj = null;
-let respuestas = [];
 let respondida = false;
 let guardado = Promise.resolve();
 let indiceActual = 0;
@@ -139,9 +129,9 @@ function formatoTiempo(ms) {
   return `${String(Math.floor(segundos / 60)).padStart(2, '0')}:${String(segundos % 60).padStart(2, '0')}`;
 }
 
-async function api(url, body) {
+async function api(endpoint, body) {
   const opciones = body ? {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)} : {};
-  const respuesta = await fetch(url, opciones);
+  const respuesta = await fetch(`./api/${endpoint}`, opciones);
   if (!respuesta.ok) throw new Error('Error de conexión');
   return respuesta.json();
 }
@@ -150,9 +140,9 @@ function limpiarEstado({conservarNombre = false} = {}) {
   clearInterval(reloj);
   reloj = null;
   sesion = null;
+  tokenSesion = null;
   inicio = 0;
   tiempoFinal = 0;
-  respuestas = [];
   respondida = false;
   guardado = Promise.resolve();
   indiceActual = 0;
@@ -165,6 +155,7 @@ function limpiarEstado({conservarNombre = false} = {}) {
   $('#cronometro').textContent = '00:00';
   $('#texto-puntaje').textContent = '0 pts';
   $('#barra-relleno').style.width = '10%';
+  $('#estado-guardado').textContent = '';
   $('#confirmacion-final').style.display = 'none';
   $('#confirmacion-final').textContent = '';
   $('#detalles-evento').classList.remove('visible');
@@ -195,8 +186,9 @@ $('#form-inicio').addEventListener('submit', async evento => {
   $('#btn-comenzar').disabled = true;
   $('#error-nombre').textContent = '';
   try {
-    const partida = await api('/api/iniciar', {nombre});
+    const partida = await api('iniciar', {nombre});
     sesion = partida.id;
+    tokenSesion = partida.token;
   } catch (error) {
     $('#error-nombre').textContent = 'No pudimos iniciar. Revisa la conexión e inténtalo otra vez.';
     $('#btn-comenzar').disabled = false;
@@ -216,7 +208,7 @@ $('#input-nombre').addEventListener('input', evento => {
 
 function imagenHTML(nombre, alt, clase = 'opcion-img') {
   if (!nombre) return '';
-  return `<div class="${clase}"><img src="/imagenes/${nombre}" alt="${alt}"><span hidden>No se pudo cargar la foto</span></div>`;
+  return `<div class="${clase}"><img src="./imagenes/${nombre}" alt="${alt}"><span hidden>No se pudo cargar la foto</span></div>`;
 }
 
 function opcionHTML(opcion, multiple) {
@@ -261,25 +253,47 @@ function renderizarPregunta() {
   $('#btn-siguiente').addEventListener('click', siguientePregunta);
 }
 
-function responder(marcadas) {
+async function responder(marcadas) {
   if (respondida) return;
   respondida = true;
-  respuestas.push(marcadas);
   const pregunta = preguntas[indiceActual];
-  const correctasMarcadas = marcadas.filter(letra => pregunta.correctas.includes(letra)).length;
-  const puntos = pregunta.tipo === 'multiple' ? correctasMarcadas * 5 : (correctasMarcadas ? 10 : 0);
-  puntajeTotal += puntos;
+  const controles = $$('.opcion').map(opcion => opcion.matches('button') ? opcion : opcion.querySelector('input'));
+  controles.forEach(control => { control.disabled = true; });
+  const botonMultiple = $('#btn-confirmar-multiple');
+  if (botonMultiple) botonMultiple.disabled = true;
+
+  let resultado;
+  try {
+    resultado = await api('responder', {
+      id: sesion,
+      token: tokenSesion,
+      pregunta: indiceActual + 1,
+      respuestas: marcadas
+    });
+  } catch (error) {
+    respondida = false;
+    controles.forEach(control => { control.disabled = false; });
+    if (botonMultiple) botonMultiple.disabled = false;
+    const feedback = $('#feedback');
+    feedback.hidden = false;
+    feedback.classList.add('error');
+    feedback.textContent = 'No pudimos comprobar tu respuesta. Inténtalo otra vez.';
+    return;
+  }
+
+  const correctas = resultado.correctas;
+  const puntos = resultado.puntos;
+  puntajeTotal = resultado.puntaje_total;
+  if (resultado.finalizado && Number.isInteger(resultado.tiempo)) tiempoFinal = resultado.tiempo;
   $$('.opcion').forEach(opcion => {
     const letra = opcion.dataset.letra;
-    const control = opcion.matches('button') ? opcion : opcion.querySelector('input');
-    control.disabled = true;
-    if (pregunta.correctas.includes(letra)) opcion.classList.add('correcta');
+    if (correctas.includes(letra)) opcion.classList.add('correcta');
     else if (marcadas.includes(letra)) opcion.classList.add('incorrecta');
   });
-  if ($('#btn-confirmar-multiple')) $('#btn-confirmar-multiple').style.display = 'none';
+  if (botonMultiple) botonMultiple.style.display = 'none';
   const feedback = $('#feedback');
-  const aciertoCompleto = puntos === 10;
-  const respuestasCorrectas = pregunta.correctas.map(letra => `${letra}. ${pregunta.opciones.find(opcion => opcion.letra === letra).texto}`).join(' y ');
+  const aciertoCompleto = resultado.acierto_completo;
+  const respuestasCorrectas = correctas.map(letra => `${letra}. ${pregunta.opciones.find(opcion => opcion.letra === letra).texto}`).join(' y ');
   feedback.hidden = false;
   feedback.classList.toggle('error', !puntos);
   feedback.innerHTML = aciertoCompleto ? `<strong>¡Correcto!</strong> +${puntos} puntos` : puntos ? `<strong>¡Casi!</strong> La respuesta completa era ${respuestasCorrectas}. +${puntos} puntos` : `La respuesta correcta era <strong>${respuestasCorrectas}</strong>.`;
@@ -290,9 +304,9 @@ function responder(marcadas) {
 function siguientePregunta() {
   if (!respondida) return;
   if (indiceActual === preguntas.length - 1) {
-    tiempoFinal = Date.now() - inicio;
     clearInterval(reloj);
-    guardado = guardarResultado();
+    guardado = Promise.resolve();
+    $('#estado-guardado').textContent = '✓ Tu resultado ya está en el ranking';
     mostrarResultadoFinal();
     return;
   }
@@ -308,19 +322,6 @@ function mostrarResultadoFinal() {
   mostrarPantalla('#pantalla-final');
 }
 
-async function guardarResultado() {
-  const estado = $('#estado-guardado');
-  estado.textContent = 'Guardando tu resultado…';
-  try {
-    await api('/api/resultado', {id: sesion, respuestas});
-    estado.textContent = '✓ Tu resultado ya está en el ranking';
-  } catch (error) {
-    estado.textContent = 'No pudimos guardar el resultado. Pulsa aquí para reintentar.';
-    estado.onclick = () => { estado.onclick = null; guardado = guardarResultado(); };
-    throw error;
-  }
-}
-
 async function confirmarAsistencia(respuesta, boton) {
   $$('.btn-asistencia').forEach(elemento => { elemento.classList.remove('activo'); elemento.disabled = true; });
   boton.classList.add('activo');
@@ -329,7 +330,7 @@ async function confirmarAsistencia(respuesta, boton) {
   confirmacion.textContent = 'Guardando tu respuesta…';
   try {
     await guardado;
-    await api('/api/asistencia', {id: sesion, asistencia: respuesta});
+    await api('asistencia', {id: sesion, token: tokenSesion, asistencia: respuesta});
   } catch (error) {
     confirmacion.textContent = 'No pudimos guardar tu respuesta. Inténtalo otra vez.';
     $$('.btn-asistencia').forEach(elemento => elemento.disabled = false);
@@ -354,7 +355,7 @@ async function abrirRanking() {
   contenido.textContent = 'Cargando ranking…';
   try {
     await guardado.catch(() => {});
-    const filas = await api('/api/ranking');
+    const filas = await api('ranking');
     if (!filas.length) { contenido.textContent = 'Todavía no hay resultados.'; return; }
     const tabla = document.createElement('table');
     tabla.innerHTML = '<thead><tr><th>#</th><th>INVITADO</th><th>PUNTOS</th><th>TIEMPO</th></tr></thead>';

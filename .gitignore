@@ -1,5 +1,9 @@
-data/*.sqlite3*
-__pycache__/
 .DS_Store
+.env*
+!.env.example
+.vercel/
+dist/
+node_modules/
 .playwright-cli/
 output/playwright/
+supabase/.temp/
