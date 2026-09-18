@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#3d1768">
+  <title>El reto de Pipa 🎉</title>
+  <link rel="stylesheet" href="/styles.css?v=20260917-8">
+</head>
+<body class="en-inicio">
+  <div class="ambient ambient-uno"></div><div class="ambient ambient-dos"></div>
+  <header class="topbar">
+    <a class="marca" href="#" aria-label="Volver al inicio"><span class="marca-icono">P</span><span>Mi cumple</span></a>
+    <button class="btn-reset" id="btn-reset" type="button"><span aria-hidden="true">↻</span> Resetear</button>
+  </header>
+
+  <main class="app-shell">
+    <section id="pantalla-inicio" class="pantalla activa inicio-card">
+      <div class="sticker sticker-uno">✦</div><div class="sticker sticker-dos">27</div>
+      <div class="hero-ilustracion" aria-hidden="true"><span class="confeti c1"></span><span class="confeti c2"></span><span class="confeti c3"></span><div class="torta">🎂</div></div>
+      <p class="eyebrow">10 PREGUNTAS · 100 PUNTOS</p>
+      <h1>¿Qué tanto<br>me conoces?</h1>
+      <p class="intro">Responde rápido, suma puntos y descubre tu lugar en el ranking de invitados.</p>
+      <form id="form-inicio" class="form-inicio" novalidate>
+        <label for="input-nombre">¿Cómo te llamas?</label>
+        <div class="input-wrap"><input type="text" id="input-nombre" placeholder="Escribe tu nombre" maxlength="60" autocomplete="name"><span aria-hidden="true">👋</span></div>
+        <p class="error-nombre" id="error-nombre" role="alert"></p>
+        <button class="btn-principal" id="btn-comenzar" type="submit">Comenzar el reto <span>→</span></button>
+      </form>
+      <footer>Hecho para celebrar los 27</footer>
+    </section>
+
+    <section id="pantalla-preguntas" class="pantalla quiz-card" aria-live="polite">
+      <div class="quiz-meta"><div><span class="meta-label">PROGRESO</span><strong id="texto-progreso">1 de 10</strong></div><div class="meta-datos"><span class="pill">⏱ <strong id="cronometro">00:00</strong></span><span class="pill pill-puntos">✦ <strong id="texto-puntaje">0 pts</strong></span></div></div>
+      <div class="progreso-barra" aria-hidden="true"><div id="barra-relleno"></div></div>
+      <div id="contenedor-pregunta"></div>
+    </section>
+
+    <section id="pantalla-final" class="pantalla final-card">
+      <div class="resultado-icono">🏆</div><p class="eyebrow">RETO COMPLETADO</p>
+      <h2 id="puntaje-final">0/100</h2><p class="resultado-mensaje" id="puntaje-mensaje">¡Gracias por jugar!</p>
+      <div class="resultado-resumen"><span>Tu tiempo</span><strong id="tiempo-final">00:00</strong></div>
+      <p id="estado-guardado" class="estado-guardado" role="status"></p>
+
+      <div id="bloque-asistencia" class="asistencia-card">
+        <span class="paso">ÚLTIMO PASO</span><h3>¿Vienes al cumpleaños?</h3><p>Confirma tu asistencia para descubrir los detalles.</p>
+        <div class="opciones-asistencia">
+          <button class="btn-asistencia" data-asistencia="Sí" type="button"><span>🥳</span>Sí voy</button>
+          <button class="btn-asistencia" data-asistencia="Tal vez" type="button"><span>🤔</span>Tal vez</button>
+          <button class="btn-asistencia" data-asistencia="No" type="button"><span>🥲</span>No podré</button>
+        </div>
+      </div>
+      <div class="confirmacion-final" id="confirmacion-final" role="status"></div>
+
+      <div class="detalles-evento" id="detalles-evento">
+        <h3>Guarda la fecha ✨</h3>
+        <div class="detalle-grid">
+          <div class="detalle-item"><span>📅</span><div><small>CUÁNDO</small><strong>26 de setiembre</strong><p>7:30 p. m. · puntual</p></div></div>
+          <div class="detalle-item"><span>📍</span><div><small>DÓNDE</small><strong>Av. Salaverry 1880</strong><p>Zona Bar · Edificio Astromelia</p></div></div>
+          <div class="detalle-item"><span>🍹</span><div><small>NO OLVIDES</small><strong>Llevar trago</strong><p>La comida corre por la casa</p></div></div>
+        </div>
+        <div class="acciones-finales">
+          <a class="accion accion-destacada" href="/invitacion-cumpleanos-pipa.png" download="invitacion-cumpleanos-pipa.png">⬇ Descargar invitación</a>
+          <button class="accion" id="btn-ver-ranking" type="button">🏆 Ver ranking</button>
+          <a class="accion" href="https://www.google.com/maps/search/?api=1&query=Av.+Salaverry+1880+Edificio+Astromelia+Lima" target="_blank" rel="noopener">⌖ Ver ubicación</a>
+          <button class="accion accion-rehacer" data-rehacer type="button">↻ Rehacer el reto</button>
+        </div>
+      </div>
+      <button class="btn-rehacer-solo" id="btn-rehacer-solo" data-rehacer type="button">↻ Rehacer el reto</button>
+    </section>
+  </main>
+
+  <dialog id="ranking">
+    <div class="ranking-cabecera"><div><span class="paso">RESULTADOS</span><h2>🏆 Ranking</h2></div><button id="cerrar-ranking" type="button" aria-label="Cerrar ranking">×</button></div>
+    <p>Más puntos primero. Si empatan, gana el menor tiempo.</p><div id="ranking-contenido" role="status"></div>
+    <button class="btn-secundario" id="btn-actualizar-ranking" type="button">Actualizar ranking</button>
+  </dialog>
+  <script src="/app.js?v=20260917-8" defer></script>
+</body>
+</html>
