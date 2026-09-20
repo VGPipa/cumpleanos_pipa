@@ -12,6 +12,7 @@ import {
   requireSession
 } from '../api/_lib/security.js';
 import { calculateQuestionScore } from '../api/_lib/scoring.js';
+import { buildProgressPayload } from '../api/_lib/progress.js';
 
 test('creates an opaque token and stores only a sha256 hash', () => {
   const token = createWriteToken();
@@ -56,4 +57,26 @@ test('awards full, partial, or zero points according to selection overlap', () =
   assert.equal(calculateQuestionScore(['A'], ['B']), 0);
   assert.equal(calculateQuestionScore(['A'], ['A', 'B']), 5);
   assert.equal(calculateQuestionScore(['A', 'B'], ['A', 'B']), 10);
+});
+
+test('builds a resumable progress payload without exposing answers or tokens', () => {
+  const session = {
+    player_name: 'Ana María',
+    status: 'started',
+    score: null,
+    elapsed_ms: null,
+    started_at: '2026-09-20T01:00:00.000Z',
+    write_token_hash: 'should-never-leave-the-server'
+  };
+  const payload = buildProgressPayload(session, [{points_awarded: 10}, {points_awarded: 5}], null, Date.parse('2026-09-20T01:00:30.000Z'));
+  assert.deepEqual(payload, {
+    nombre: 'Ana María',
+    estado: 'started',
+    respuestas: 2,
+    puntaje: 15,
+    tiempo: null,
+    transcurrido: 30_000,
+    asistencia: null
+  });
+  assert.equal('write_token_hash' in payload, false);
 });

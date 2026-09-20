@@ -98,6 +98,7 @@ const preguntas = [
 ];
 
 const PUNTOS_POR_PREGUNTA = 10;
+const CLAVE_SESION_LOCAL = 'pipa-quiz-session-v1';
 let sesion = null;
 let tokenSesion = null;
 let inicio = 0;
@@ -139,8 +140,47 @@ function formatoTiempo(ms) {
 async function api(endpoint, body) {
   const opciones = body ? {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)} : {};
   const respuesta = await fetch(`./api/${endpoint}`, opciones);
-  if (!respuesta.ok) throw new Error('Error de conexión');
-  return respuesta.json();
+  const datos = await respuesta.json().catch(() => ({}));
+  if (!respuesta.ok) {
+    const error = new Error(datos.error || 'Error de conexión');
+    error.status = respuesta.status;
+    throw error;
+  }
+  return datos;
+}
+
+function leerSesionLocal() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CLAVE_SESION_LOCAL));
+    if (!saved || typeof saved.id !== 'string' || typeof saved.token !== 'string' || typeof saved.nombre !== 'string') return null;
+    return saved;
+  } catch {
+    return null;
+  }
+}
+
+function guardarSesionLocal() {
+  try {
+    localStorage.setItem(CLAVE_SESION_LOCAL, JSON.stringify({id: sesion, token: tokenSesion, nombre: nombreJugador}));
+  } catch {
+    // La partida continúa aunque el navegador no permita almacenamiento local.
+  }
+}
+
+function borrarSesionLocal() {
+  try {
+    localStorage.removeItem(CLAVE_SESION_LOCAL);
+  } catch {
+    // No hay nada más que limpiar si el almacenamiento está bloqueado.
+  }
+}
+
+function iniciarReloj(transcurrido = 0) {
+  clearInterval(reloj);
+  inicio = Date.now() - Math.max(0, transcurrido);
+  const actualizar = () => { $('#cronometro').textContent = formatoTiempo(Date.now() - inicio); };
+  actualizar();
+  reloj = setInterval(actualizar, 250);
 }
 
 function limpiarEstado({conservarNombre = false} = {}) {
@@ -213,8 +253,8 @@ $('#form-inicio').addEventListener('submit', async evento => {
     return;
   }
   nombreJugador = nombre;
-  inicio = Date.now();
-  reloj = setInterval(() => $('#cronometro').textContent = formatoTiempo(Date.now() - inicio), 250);
+  guardarSesionLocal();
+  iniciarReloj();
   mostrarPantalla('#pantalla-preguntas');
   renderizarPregunta();
 });
@@ -364,7 +404,7 @@ async function siguientePregunta() {
   avanzandoPregunta = false;
 }
 
-function mostrarResultadoFinal() {
+function mostrarResultadoFinal({restaurada = false, asistencia = null} = {}) {
   $('#puntaje-final').textContent = `${puntajeTotal}/100`;
   $('#puntaje-ticket').textContent = `${puntajeTotal}/100`;
   $('#tiempo-final').textContent = formatoTiempo(tiempoFinal);
@@ -373,13 +413,67 @@ function mostrarResultadoFinal() {
   temporizadoresFinales = [];
   final.classList.remove('final-secuencia', 'final-puntaje-compacto', 'final-asistencia-lista', 'final-invitacion-protagonista');
   mostrarPantalla('#pantalla-final');
-  if (prefiereMenosMovimiento()) {
+  if (restaurada || prefiereMenosMovimiento()) {
     final.classList.add('final-secuencia', 'final-puntaje-compacto', 'final-asistencia-lista');
+    if (restaurada) mostrarAsistenciaRestaurada(asistencia);
     return;
   }
   requestAnimationFrame(() => final.classList.add('final-secuencia'));
   temporizadoresFinales.push(setTimeout(() => final.classList.add('final-puntaje-compacto'), 1250));
   temporizadoresFinales.push(setTimeout(() => final.classList.add('final-asistencia-lista'), 2180));
+}
+
+function mostrarAsistenciaRestaurada(asistencia) {
+  if (!asistencia) return;
+  $('#bloque-asistencia').style.display = 'none';
+  const confirmacion = $('#confirmacion-final');
+  confirmacion.style.display = 'block';
+  if (asistencia === 'yes') {
+    confirmacion.textContent = `Asistencia confirmada, ${nombreJugador}.`;
+    $('#pantalla-final').classList.add('final-invitacion-protagonista');
+    $('#detalles-evento').classList.add('visible');
+    cargarRankingPrevio();
+    return;
+  }
+  confirmacion.textContent = `Gracias por avisar, ${nombreJugador}. Te vamos a extrañar.`;
+}
+
+async function restaurarSesionGuardada() {
+  const saved = leerSesionLocal();
+  if (!saved) return;
+
+  $('#input-nombre').value = saved.nombre;
+  $('#input-nombre').disabled = true;
+  $('#btn-comenzar').disabled = true;
+  try {
+    const progreso = await api('progreso', {id: saved.id, token: saved.token});
+    sesion = saved.id;
+    tokenSesion = saved.token;
+    nombreJugador = progreso.nombre;
+    puntajeTotal = Number(progreso.puntaje) || 0;
+    $('#input-nombre').value = nombreJugador;
+
+    if (progreso.estado === 'completed') {
+      tiempoFinal = Number(progreso.tiempo) || 0;
+      mostrarResultadoFinal({restaurada: true, asistencia: progreso.asistencia});
+      return;
+    }
+
+    indiceActual = Math.max(0, Math.min(Number(progreso.respuestas) || 0, preguntas.length - 1));
+    iniciarReloj(Number(progreso.transcurrido) || 0);
+    mostrarPantalla('#pantalla-preguntas');
+    renderizarPregunta();
+  } catch (error) {
+    if (error.status === 400 || error.status === 404) {
+      borrarSesionLocal();
+      $('#input-nombre').value = '';
+      $('#error-nombre').textContent = '';
+    } else {
+      $('#error-nombre').textContent = 'Ya habías iniciado. No pudimos recuperar tu avance; recarga para intentarlo otra vez.';
+    }
+    $('#input-nombre').disabled = false;
+    $('#btn-comenzar').disabled = false;
+  }
 }
 
 function seleccionarAsistencia(boton) {
@@ -564,3 +658,5 @@ $('#ranking').addEventListener('cancel', evento => {
   evento.preventDefault();
   cerrarRanking();
 });
+
+restaurarSesionGuardada();

@@ -74,6 +74,18 @@ const server = createServer(async (request, response) => {
     }
 
     const session = requireSession(body);
+    if (pathname === '/api/progreso') {
+      const transcurrido = session.completed ? session.elapsed : Math.min(86_400_000, Date.now() - session.startedAt);
+      return json(response, 200, {
+        nombre: session.name,
+        estado: session.completed ? 'completed' : 'started',
+        respuestas: session.answers.length,
+        puntaje: session.score,
+        tiempo: session.completed ? session.elapsed : null,
+        transcurrido,
+        asistencia: session.asistencia === 'Sí' ? 'yes' : session.asistencia === 'No' ? 'no' : null
+      });
+    }
     if (pathname === '/api/responder') {
       const position = Number(body.pregunta);
       const selected = [...new Set((Array.isArray(body.respuestas) ? body.respuestas : []).map(value => String(value).toUpperCase()))];

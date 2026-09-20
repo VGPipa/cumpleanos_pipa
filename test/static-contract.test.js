@@ -103,6 +103,18 @@ test('the global reset button is absent and a started game cannot restart from c
   assert.match(css, /input:focus-visible\{outline-color:var\(--lila\)\}/);
 });
 
+test('refreshing resumes the server-confirmed question and completed state', async () => {
+  const app = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
+  const progressApi = await readFile(new URL('../api/progreso.js', import.meta.url), 'utf8');
+  assert.match(app, /CLAVE_SESION_LOCAL = 'pipa-quiz-session-v1'/);
+  assert.match(app, /localStorage\.setItem\(CLAVE_SESION_LOCAL/);
+  assert.match(app, /api\('progreso', \{id: saved\.id, token: saved\.token\}\)/);
+  assert.match(app, /indiceActual = Math\.max\(0, Math\.min\(Number\(progreso\.respuestas\)/);
+  assert.match(app, /mostrarResultadoFinal\(\{restaurada: true, asistencia: progreso\.asistencia\}\)/);
+  assert.match(progressApi, /\.eq\('write_token_hash', identity\.tokenHash\)/);
+  assert.doesNotMatch(progressApi, /is_correct|selected_option|correctas/);
+});
+
 test('public frontend cannot activate a localhost answer-key preview', async () => {
   const app = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
   assert.doesNotMatch(app, /MODO_DEMO_LOCAL|solo-demo-local|apiDemo/);
