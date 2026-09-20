@@ -136,3 +136,14 @@ test('static assets and APIs use paths compatible with a proxy subdirectory', as
   assert.match(app, /fetch\(`\.\/api\//);
   assert.match(app, /src="\.\/imagenes\//);
 });
+
+test('the final invitation keeps header clearance and the complete venue name', async () => {
+  const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../public/styles.css', import.meta.url), 'utf8');
+  const migration = await readFile(new URL('../supabase/migrations/20260920020834_update_venue_name.sql', import.meta.url), 'utf8');
+  assert.match(html, /Sala de juegos y bar · Edificio Astromelia/);
+  assert.doesNotMatch(html, /Zona Bar · Edificio Astromelia/);
+  assert.match(css, /body:not\(\.en-inicio\):not\(\.en-preguntas\) \.app-shell\{\s*margin-top:clamp\(14px,2vw,20px\)/);
+  assert.match(css, /body:not\(\.en-inicio\):not\(\.en-preguntas\) \.final-card\{\s*max-height:calc\(100svh - 106px\)/);
+  assert.match(migration, /set venue_name = 'Sala de juegos y bar · Edificio Astromelia'/);
+});

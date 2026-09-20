@@ -488,6 +488,15 @@ body{font-family:"Avenir Next",Avenir,"Helvetica Neue",Arial,sans-serif}
   perspective:1200px;
   transition:background-color .72s ease,border-color .72s ease,padding-top .72s cubic-bezier(.2,.74,.18,1);
 }
+body:not(.en-inicio):not(.en-preguntas) .app-shell{
+  margin-top:clamp(14px,2vw,20px);
+}
+body:not(.en-inicio):not(.en-preguntas) .final-card{
+  max-height:calc(100svh - 106px);
+}
+@media(max-width:560px){
+  body:not(.en-inicio):not(.en-preguntas) .final-card{max-height:calc(100svh - 88px)}
+}
 .resultado-cabecera{max-height:230px;text-align:center}
 #puntaje-final{
   margin:2px 0;
