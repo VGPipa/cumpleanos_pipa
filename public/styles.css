@@ -78,13 +78,15 @@ h1 span{color:var(--uva2)}
 }
 
 /* Cuestionario a pantalla completa y alternativas en una sola columna. */
-body.en-preguntas{overflow:hidden}
+body.en-preguntas{overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .en-preguntas .app-shell{width:100%;margin:0}
 .en-preguntas .quiz-card{
-  position:fixed;
-  inset:0;
+  position:relative;
+  inset:auto;
   width:100%;
-  height:100dvh;
+  min-height:100vh;
+  min-height:100svh;
+  height:auto;
   max-height:none;
   padding:80px clamp(16px,4vw,64px) 28px;
   border:0;
@@ -92,7 +94,9 @@ body.en-preguntas{overflow:hidden}
   background:var(--crema);
   box-shadow:none;
   animation:none;
-  overflow:hidden;
+  overflow:visible;
+  overscroll-behavior-y:auto;
+  touch-action:auto;
 }
 .en-preguntas .topbar{
   position:fixed;
@@ -492,11 +496,12 @@ body:not(.en-inicio):not(.en-preguntas) .app-shell{
   margin-top:clamp(14px,2vw,20px);
 }
 body:not(.en-inicio):not(.en-preguntas) .final-card{
-  max-height:calc(100svh - 106px);
+  max-height:none;
+  overflow:visible;
+  overscroll-behavior-y:auto;
+  touch-action:auto;
 }
-@media(max-width:560px){
-  body:not(.en-inicio):not(.en-preguntas) .final-card{max-height:calc(100svh - 88px)}
-}
+dialog{overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .resultado-cabecera{max-height:230px;text-align:center}
 #puntaje-final{
   margin:2px 0;

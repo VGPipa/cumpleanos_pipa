@@ -287,7 +287,7 @@ function opcionHTML(opcion) {
 
 function renderizarPregunta() {
   respondida = false;
-  $('#pantalla-preguntas').scrollTop = 0;
+  window.scrollTo(0, 0);
   const pregunta = preguntas[indiceActual];
   $('#texto-progreso').textContent = `${indiceActual + 1} de ${preguntas.length}`;
   $('#texto-puntaje').textContent = `${puntajeTotal} pts`;

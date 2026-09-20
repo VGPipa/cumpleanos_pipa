@@ -144,6 +144,16 @@ test('the final invitation keeps header clearance and the complete venue name', 
   assert.match(html, /Sala de juegos y bar · Edificio Astromelia/);
   assert.doesNotMatch(html, /Zona Bar · Edificio Astromelia/);
   assert.match(css, /body:not\(\.en-inicio\):not\(\.en-preguntas\) \.app-shell\{\s*margin-top:clamp\(14px,2vw,20px\)/);
-  assert.match(css, /body:not\(\.en-inicio\):not\(\.en-preguntas\) \.final-card\{\s*max-height:calc\(100svh - 106px\)/);
+  assert.match(css, /body:not\(\.en-inicio\):not\(\.en-preguntas\) \.final-card\{\s*max-height:none;\s*overflow:visible/);
   assert.match(migration, /set venue_name = 'Sala de juegos y bar · Edificio Astromelia'/);
+});
+
+test('mobile screens keep a single usable vertical scroll path', async () => {
+  const css = await readFile(new URL('../public/styles.css', import.meta.url), 'utf8');
+  const app = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
+  assert.match(css, /body\.en-preguntas\{overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch\}/);
+  assert.match(css, /\.en-preguntas \.quiz-card\{[\s\S]*?position:relative;[\s\S]*?min-height:100svh;[\s\S]*?height:auto;[\s\S]*?overflow:visible;[\s\S]*?touch-action:auto;/);
+  assert.match(css, /body:not\(\.en-inicio\):not\(\.en-preguntas\) \.final-card\{[\s\S]*?max-height:none;[\s\S]*?overflow:visible;[\s\S]*?touch-action:auto;/);
+  assert.match(css, /dialog\{overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch\}/);
+  assert.match(app, /function renderizarPregunta\(\) \{\s*respondida = false;\s*window\.scrollTo\(0, 0\);/);
 });
