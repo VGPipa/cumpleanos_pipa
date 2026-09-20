@@ -4,26 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#3d1768">
-  <title>El reto de Pipa 🎉</title>
-  <link rel="stylesheet" href="./styles.css?v=20260917-8">
+  <title>El reto de Pipa</title>
+  <link rel="stylesheet" href="./styles.css?v=20260919-10">
 </head>
 <body class="en-inicio">
+  <a class="skip-link" href="#contenido-principal">Saltar al contenido</a>
   <div class="ambient ambient-uno"></div><div class="ambient ambient-dos"></div>
   <header class="topbar">
     <a class="marca" href="#" aria-label="Volver al inicio"><span class="marca-icono">P</span><span>Mi cumple</span></a>
     <button class="btn-reset" id="btn-reset" type="button"><span aria-hidden="true">↻</span> Resetear</button>
   </header>
 
-  <main class="app-shell">
+  <main class="app-shell" id="contenido-principal">
     <section id="pantalla-inicio" class="pantalla activa inicio-card">
-      <div class="sticker sticker-uno">✦</div><div class="sticker sticker-dos">27</div>
-      <div class="hero-ilustracion" aria-hidden="true"><span class="confeti c1"></span><span class="confeti c2"></span><span class="confeti c3"></span><div class="torta">🎂</div></div>
+      <span class="edad-sello" aria-label="Mis 27 años"><strong>27</strong><small>AÑOS</small></span>
       <p class="eyebrow">10 PREGUNTAS · 100 PUNTOS</p>
       <h1>¿Qué tanto<br>me conoces?</h1>
       <p class="intro">Responde rápido, suma puntos y descubre tu lugar en el ranking de invitados.</p>
       <form id="form-inicio" class="form-inicio" novalidate>
         <label for="input-nombre">¿Cómo te llamas?</label>
-        <div class="input-wrap"><input type="text" id="input-nombre" placeholder="Escribe tu nombre" maxlength="60" autocomplete="name"><span aria-hidden="true">👋</span></div>
+        <div class="input-wrap"><input type="text" id="input-nombre" name="nombre" placeholder="Escribe tu nombre…" maxlength="60" autocomplete="name"><span aria-hidden="true">👋</span></div>
         <p class="error-nombre" id="error-nombre" role="alert"></p>
         <button class="btn-principal" id="btn-comenzar" type="submit">Comenzar el reto <span>→</span></button>
       </form>
@@ -37,33 +37,46 @@
     </section>
 
     <section id="pantalla-final" class="pantalla final-card">
-      <div class="resultado-icono">🏆</div><p class="eyebrow">RETO COMPLETADO</p>
-      <h2 id="puntaje-final">0/100</h2><p class="resultado-mensaje" id="puntaje-mensaje">¡Gracias por jugar!</p>
-      <div class="resultado-resumen"><span>Tu tiempo</span><strong id="tiempo-final">00:00</strong></div>
-      <p id="estado-guardado" class="estado-guardado" role="status"></p>
+      <div class="resultado-cabecera" id="resultado-cabecera">
+        <div class="resultado-icono" aria-hidden="true"></div><p class="eyebrow">RETO COMPLETADO</p>
+        <h2 id="puntaje-final">0/100</h2>
+        <div class="resultado-resumen"><span>Tu tiempo</span><strong id="tiempo-final">00:00</strong></div>
+      </div>
 
       <div id="bloque-asistencia" class="asistencia-card">
         <span class="paso">ÚLTIMO PASO</span><h3>¿Vienes al cumpleaños?</h3><p>Confirma tu asistencia para descubrir los detalles.</p>
         <div class="opciones-asistencia">
-          <button class="btn-asistencia" data-asistencia="Sí" type="button"><span>🥳</span>Sí voy</button>
-          <button class="btn-asistencia" data-asistencia="Tal vez" type="button"><span>🤔</span>Tal vez</button>
-          <button class="btn-asistencia" data-asistencia="No" type="button"><span>🥲</span>No podré</button>
+          <button class="btn-asistencia" data-asistencia="Sí" type="button">Sí, voy</button>
+          <button class="btn-asistencia" data-asistencia="No" type="button">No podré</button>
         </div>
+        <form id="form-identidad" class="form-identidad" hidden novalidate>
+          <p>Completa tus datos para añadirte a la lista de invitados.</p>
+          <label for="input-nombre-completo">Nombre completo</label>
+          <input id="input-nombre-completo" name="nombreCompleto" type="text" maxlength="120" autocomplete="name" placeholder="Nombre y apellido…">
+          <label for="input-dni">DNI</label>
+          <input id="input-dni" name="dni" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" autocomplete="off" spellcheck="false" placeholder="Ej. 12345678">
+          <p class="error-identidad" id="error-identidad" role="alert"></p>
+          <button class="btn-principal" id="btn-confirmar-asistencia" type="submit">Confirmar asistencia <span>→</span></button>
+        </form>
       </div>
       <div class="confirmacion-final" id="confirmacion-final" role="status"></div>
 
       <div class="detalles-evento" id="detalles-evento">
-        <h3>Guarda la fecha ✨</h3>
+        <div class="invitacion-resultado"><span class="invitacion-check" aria-hidden="true">✓</span><span>Reto completado</span><strong id="puntaje-ticket">0/100</strong></div>
+        <div class="invitacion-encabezado"><span class="paso">TU INVITACIÓN</span><h3>Guarda la fecha</h3><p>Pipa cumple 27</p></div>
         <div class="detalle-grid">
-          <div class="detalle-item"><span>📅</span><div><small>CUÁNDO</small><strong>26 de setiembre</strong><p>7:30 p. m. · puntual</p></div></div>
-          <div class="detalle-item"><span>📍</span><div><small>DÓNDE</small><strong>Av. Salaverry 1880</strong><p>Zona Bar · Edificio Astromelia</p></div></div>
-          <div class="detalle-item"><span>🍹</span><div><small>NO OLVIDES</small><strong>Llevar trago</strong><p>La comida corre por la casa</p></div></div>
+          <div class="detalle-item"><div><small>CUÁNDO</small><strong>26 de setiembre</strong><p>7:30 p. m. · puntual</p></div></div>
+          <div class="detalle-item"><div><small>DÓNDE</small><strong>Av. Salaverry 1880</strong><p>Zona Bar · Edificio Astromelia</p></div></div>
+          <div class="detalle-item"><div><small>NO OLVIDES</small><strong>Llevar trago</strong><p>La comida corre por la casa</p></div></div>
         </div>
+        <section class="ranking-previo" aria-labelledby="ranking-previo-titulo">
+          <div class="ranking-previo-cabecera"><div><span class="paso">PODIO</span><h4 id="ranking-previo-titulo">Los tres primeros</h4></div><button class="ranking-mas" id="btn-ver-ranking" type="button" aria-label="Ver ranking completo">Ver más <span aria-hidden="true">→</span></button></div>
+          <ol id="ranking-previo-lista"><li class="ranking-cargando">Actualizando posiciones…</li></ol>
+        </section>
         <div class="acciones-finales">
-          <a class="accion accion-destacada" href="./invitacion-cumpleanos-pipa.png" download="invitacion-cumpleanos-pipa.png">⬇ Descargar invitación</a>
-          <button class="accion" id="btn-ver-ranking" type="button">🏆 Ver ranking</button>
-          <a class="accion" href="https://www.google.com/maps/search/?api=1&query=Av.+Salaverry+1880+Edificio+Astromelia+Lima" target="_blank" rel="noopener">⌖ Ver ubicación</a>
-          <button class="accion accion-rehacer" data-rehacer type="button">↻ Rehacer el reto</button>
+          <a class="accion accion-destacada" href="./invitacion-cumpleanos-pipa-v2.png" download="invitacion-cumpleanos-pipa.png">Descargar invitación</a>
+          <a class="accion" href="https://www.google.com/maps/search/?api=1&query=Av.+Salaverry+1880+Edificio+Astromelia+Lima" target="_blank" rel="noopener">Ver ubicación</a>
+          <button class="accion accion-rehacer" data-rehacer type="button">Rehacer el reto</button>
         </div>
       </div>
       <button class="btn-rehacer-solo" id="btn-rehacer-solo" data-rehacer type="button">↻ Rehacer el reto</button>
@@ -71,10 +84,10 @@
   </main>
 
   <dialog id="ranking">
-    <div class="ranking-cabecera"><div><span class="paso">RESULTADOS</span><h2>🏆 Ranking</h2></div><button id="cerrar-ranking" type="button" aria-label="Cerrar ranking">×</button></div>
+    <div class="ranking-cabecera"><div><span class="paso">RESULTADOS</span><h2>Ranking</h2></div><button id="cerrar-ranking" type="button" aria-label="Cerrar ranking">×</button></div>
     <p>Más puntos primero. Si empatan, gana el menor tiempo.</p><div id="ranking-contenido" role="status"></div>
     <button class="btn-secundario" id="btn-actualizar-ranking" type="button">Actualizar ranking</button>
   </dialog>
-  <script src="./app.js?v=20260918-9" defer></script>
+  <script src="./app.js?v=20260919-10" defer></script>
 </body>
 </html>

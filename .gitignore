@@ -6,4 +6,5 @@ dist/
 node_modules/
 .playwright-cli/
 output/playwright/
+artifacts/
 supabase/.temp/

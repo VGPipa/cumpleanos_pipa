@@ -50,10 +50,24 @@ export function normalizeSelections(value) {
 export function normalizeRsvp(value) {
   const statuses = new Map([
     ['Sí', 'yes'],
-    ['Tal vez', 'maybe'],
     ['No', 'no']
   ]);
   const status = statuses.get(value);
   if (!status) throw new RequestError('Asistencia inválida');
   return status;
+}
+
+export function normalizeGuestFullName(value) {
+  if (typeof value !== 'string') throw new RequestError('Nombre completo inválido');
+  const name = value.trim().replace(/\s+/g, ' ');
+  if ([...name].length < 3 || [...name].length > 120 || name.split(' ').length < 2) {
+    throw new RequestError('Escribe tu nombre completo');
+  }
+  return name;
+}
+
+export function normalizeDni(value) {
+  const dni = typeof value === 'string' ? value.trim() : '';
+  if (!/^\d{8}$/.test(dni)) throw new RequestError('El DNI debe tener 8 dígitos');
+  return dni;
 }

@@ -108,20 +108,27 @@ let guardado = Promise.resolve();
 let indiceActual = 0;
 let puntajeTotal = 0;
 let nombreJugador = "";
+let avanzandoPregunta = false;
+let temporizadoresFinales = [];
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const pantallas = $$('.pantalla');
+const prefiereMenosMovimiento = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // La primera carga usa el mismo estado visual que el botón Resetear.
 mostrarPantalla('#pantalla-inicio');
 
 function mostrarPantalla(selector) {
+  const partidaIniciada = Boolean(nombreJugador);
   document.body.classList.toggle('en-inicio', selector === '#pantalla-inicio');
   document.body.classList.toggle('en-preguntas', selector === '#pantalla-preguntas');
+  document.body.classList.toggle('partida-iniciada', partidaIniciada);
+  $('.marca').setAttribute('aria-disabled', String(partidaIniciada));
+  $('.marca').tabIndex = partidaIniciada ? -1 : 0;
   pantallas.forEach(pantalla => pantalla.classList.remove('activa'));
   $(selector).classList.add('activa');
-  window.scrollTo({top: 0, behavior: 'smooth'});
+  window.scrollTo({top: 0, behavior: prefiereMenosMovimiento() ? 'auto' : 'smooth'});
 }
 
 function formatoTiempo(ms) {
@@ -144,6 +151,9 @@ function limpiarEstado({conservarNombre = false} = {}) {
   inicio = 0;
   tiempoFinal = 0;
   respondida = false;
+  avanzandoPregunta = false;
+  temporizadoresFinales.forEach(clearTimeout);
+  temporizadoresFinales = [];
   guardado = Promise.resolve();
   indiceActual = 0;
   puntajeTotal = 0;
@@ -155,16 +165,24 @@ function limpiarEstado({conservarNombre = false} = {}) {
   $('#cronometro').textContent = '00:00';
   $('#texto-puntaje').textContent = '0 pts';
   $('#barra-relleno').style.width = '10%';
-  $('#estado-guardado').textContent = '';
   $('#confirmacion-final').style.display = 'none';
+  $('#confirmacion-final').classList.remove('error');
   $('#confirmacion-final').textContent = '';
   $('#detalles-evento').classList.remove('visible');
+  $('#pantalla-final').classList.remove('final-secuencia', 'final-puntaje-compacto', 'final-asistencia-lista', 'final-invitacion-protagonista');
   $('#btn-rehacer-solo').classList.remove('visible');
   $('#bloque-asistencia').style.display = '';
+  $('#form-identidad').hidden = true;
+  $('#form-identidad').classList.remove('visible');
+  $('#input-nombre-completo').value = '';
+  $('#input-dni').value = '';
+  $('#error-identidad').textContent = '';
+  $('#ranking-previo-lista').innerHTML = '<li class="ranking-cargando">Actualizando posiciones…</li>';
   $$('.btn-asistencia').forEach(boton => { boton.classList.remove('activo'); boton.disabled = false; });
 }
 
 function resetear() {
+  if (sesion || nombreJugador) return;
   const nombreAnterior = nombreJugador || $('#input-nombre').value.trim();
   limpiarEstado({conservarNombre: true});
   nombreJugador = nombreAnterior;
@@ -206,17 +224,25 @@ $('#input-nombre').addEventListener('input', evento => {
   $('#error-nombre').textContent = '';
 });
 
+const dimensionesImagenes = {
+  '1A.webp': [960, 720], '1B.webp': [960, 720],
+  '2A.webp': [768, 960], '2B.webp': [768, 960],
+  '3.webp': [720, 960], '4.webp': [720, 960], '5.webp': [960, 877],
+  '6A.webp': [768, 960], '6B.webp': [768, 960],
+  '7A.webp': [720, 960], '7B.webp': [720, 960], '8.webp': [720, 960],
+  '9A.webp': [540, 960], '9B.webp': [540, 960],
+  '10A.webp': [720, 960], '10B.webp': [720, 960]
+};
+
 function imagenHTML(nombre, alt, clase = 'opcion-img') {
   if (!nombre) return '';
-  return `<div class="${clase}"><img src="./imagenes/${nombre}" alt="${alt}"><span hidden>No se pudo cargar la foto</span></div>`;
+  const [ancho, alto] = dimensionesImagenes[nombre] || [720, 960];
+  return `<div class="${clase}"><img src="./imagenes/${nombre}" alt="${alt}" width="${ancho}" height="${alto}" decoding="async"><span hidden>No se pudo cargar la foto</span></div>`;
 }
 
-function opcionHTML(opcion, multiple) {
+function opcionHTML(opcion) {
   const contenido = `<span class="opcion-letra">${opcion.letra}</span><span class="opcion-contenido">${opcion.texto}</span>`;
-  if (multiple) {
-    return `<label class="opcion multiple" data-letra="${opcion.letra}"><input class="check-opcion" type="checkbox" value="${opcion.letra}" aria-label="${opcion.texto}">${contenido}${imagenHTML(opcion.imagen, opcion.texto)}</label>`;
-  }
-  return `<button class="opcion" data-letra="${opcion.letra}" type="button">${contenido}${imagenHTML(opcion.imagen, opcion.texto)}</button>`;
+  return `<label class="opcion" data-letra="${opcion.letra}"><input class="check-opcion" type="checkbox" value="${opcion.letra}" aria-label="${opcion.texto}">${contenido}${imagenHTML(opcion.imagen, opcion.texto)}</label>`;
 }
 
 function renderizarPregunta() {
@@ -232,35 +258,40 @@ function renderizarPregunta() {
     <p class="pregunta-numero">PREGUNTA ${indiceActual + 1}</p>
     <h2 class="pregunta-texto">${texto}</h2>
     ${imagenHTML(pregunta.imagenPregunta, 'Imagen de la pregunta', 'img-placeholder')}
-    <div class="opciones ${tieneImagenes ? 'con-imagenes' : ''}">${pregunta.opciones.map(opcion => opcionHTML(opcion, pregunta.tipo === 'multiple')).join('')}</div>
-    ${pregunta.tipo === 'multiple' ? '<button class="btn-principal" id="btn-confirmar-multiple" type="button">Confirmar respuesta <span>→</span></button>' : ''}
-    <div class="feedback-correcta" id="feedback" hidden></div>
-    <button class="btn-siguiente" id="btn-siguiente" type="button">Continuar →</button>`;
+    <p class="ayuda-seleccion">Puedes marcar una o más opciones.</p>
+    <div class="opciones ${tieneImagenes ? 'con-imagenes' : ''}">${pregunta.opciones.map(opcion => opcionHTML(opcion)).join('')}</div>
+    <button class="btn-principal" id="btn-confirmar-seleccion" type="button" disabled>Responder <span>→</span></button>
+    <div class="recompensa-puntos" id="feedback" role="status" hidden></div>`;
+  const contenedorPregunta = $('#contenedor-pregunta');
+  contenedorPregunta.classList.remove('pregunta-entrando', 'pregunta-saliendo');
+  if (!prefiereMenosMovimiento()) {
+    requestAnimationFrame(() => contenedorPregunta.classList.add('pregunta-entrando'));
+  }
 
   $$('#contenedor-pregunta img').forEach(imagen => {
     imagen.addEventListener('load', () => { imagen.style.display = 'block'; imagen.nextElementSibling.hidden = true; });
     imagen.addEventListener('error', () => { imagen.style.display = 'none'; imagen.nextElementSibling.hidden = false; });
   });
-  if (pregunta.tipo === 'multiple') {
-    $$('.opcion.multiple').forEach(opcion => opcion.addEventListener('change', () => opcion.classList.toggle('seleccionada', opcion.querySelector('input').checked)));
-    $('#btn-confirmar-multiple').addEventListener('click', () => {
-      const marcadas = $$('.check-opcion:checked').map(check => check.value);
-      if (marcadas.length) responder(marcadas);
-    });
-  } else {
-    $$('.opcion').forEach(opcion => opcion.addEventListener('click', () => responder([opcion.dataset.letra])));
-  }
-  $('#btn-siguiente').addEventListener('click', siguientePregunta);
+  const confirmar = $('#btn-confirmar-seleccion');
+  $$('.opcion').forEach(opcion => opcion.addEventListener('change', () => {
+    opcion.classList.toggle('seleccionada', opcion.querySelector('input').checked);
+    const cantidad = $$('.check-opcion:checked').length;
+    confirmar.disabled = cantidad === 0;
+    confirmar.innerHTML = 'Responder <span>→</span>';
+  }));
+  confirmar.addEventListener('click', () => {
+    const marcadas = $$('.check-opcion:checked').map(check => check.value);
+    if (marcadas.length) responder(marcadas);
+  });
 }
 
 async function responder(marcadas) {
   if (respondida) return;
   respondida = true;
-  const pregunta = preguntas[indiceActual];
-  const controles = $$('.opcion').map(opcion => opcion.matches('button') ? opcion : opcion.querySelector('input'));
-  controles.forEach(control => { control.disabled = true; });
-  const botonMultiple = $('#btn-confirmar-multiple');
-  if (botonMultiple) botonMultiple.disabled = true;
+  const controles = $$('.opcion').map(opcion => opcion.querySelector('input'));
+  controles.forEach(control => { control.disabled = true; control.closest('.opcion').classList.add('deshabilitada'); });
+  const botonConfirmar = $('#btn-confirmar-seleccion');
+  if (botonConfirmar) botonConfirmar.disabled = true;
 
   let resultado;
   try {
@@ -272,8 +303,8 @@ async function responder(marcadas) {
     });
   } catch (error) {
     respondida = false;
-    controles.forEach(control => { control.disabled = false; });
-    if (botonMultiple) botonMultiple.disabled = false;
+    controles.forEach(control => { control.disabled = false; control.closest('.opcion').classList.remove('deshabilitada'); });
+    if (botonConfirmar) botonConfirmar.disabled = false;
     const feedback = $('#feedback');
     feedback.hidden = false;
     feedback.classList.add('error');
@@ -283,6 +314,14 @@ async function responder(marcadas) {
 
   const correctas = resultado.correctas;
   const puntos = resultado.puntos;
+  const pregunta = preguntas[indiceActual];
+  const opcionesCorrectas = correctas
+    .map(letra => pregunta.opciones.find(opcion => opcion.letra === letra))
+    .filter(Boolean);
+  const claveCorrecta = correctas.length === 1
+    ? `Era la ${correctas[0]}`
+    : `Eran ${correctas.map(letra => `la ${letra}`).join(' y ')}`;
+  const respuestaCorrecta = opcionesCorrectas.map(opcion => opcion.texto).join(' · ');
   puntajeTotal = resultado.puntaje_total;
   if (resultado.finalizado && Number.isInteger(resultado.tiempo)) tiempoFinal = resultado.tiempo;
   $$('.opcion').forEach(opcion => {
@@ -290,67 +329,192 @@ async function responder(marcadas) {
     if (correctas.includes(letra)) opcion.classList.add('correcta');
     else if (marcadas.includes(letra)) opcion.classList.add('incorrecta');
   });
-  if (botonMultiple) botonMultiple.style.display = 'none';
+  if (botonConfirmar) botonConfirmar.style.display = 'none';
   const feedback = $('#feedback');
-  const aciertoCompleto = resultado.acierto_completo;
-  const respuestasCorrectas = correctas.map(letra => `${letra}. ${pregunta.opciones.find(opcion => opcion.letra === letra).texto}`).join(' y ');
+  feedback.classList.remove('error');
   feedback.hidden = false;
-  feedback.classList.toggle('error', !puntos);
-  feedback.innerHTML = aciertoCompleto ? `<strong>¡Correcto!</strong> +${puntos} puntos` : puntos ? `<strong>¡Casi!</strong> La respuesta completa era ${respuestasCorrectas}. +${puntos} puntos` : `La respuesta correcta era <strong>${respuestasCorrectas}</strong>.`;
-  $('#btn-siguiente').style.display = 'block';
+  feedback.classList.toggle('sin-puntos', puntos === 0);
+  feedback.innerHTML = `
+    <div class="feedback-puntaje"><strong>${puntos > 0 ? '+' : ''}${puntos}</strong><span>${puntos === 1 ? 'punto' : 'puntos'}</span></div>
+    <p class="feedback-clave">${claveCorrecta}</p>
+    <p class="feedback-explicacion">${respuestaCorrecta}</p>`;
   $('#texto-puntaje').textContent = `${puntajeTotal} pts`;
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  await siguientePregunta();
 }
 
-function siguientePregunta() {
-  if (!respondida) return;
+async function siguientePregunta() {
+  if (!respondida || avanzandoPregunta) return;
+  avanzandoPregunta = true;
+  const contenedorPregunta = $('#contenedor-pregunta');
+  if (!prefiereMenosMovimiento()) {
+    contenedorPregunta.classList.remove('pregunta-entrando');
+    contenedorPregunta.classList.add('pregunta-saliendo');
+    await new Promise(resolve => setTimeout(resolve, 280));
+  }
   if (indiceActual === preguntas.length - 1) {
     clearInterval(reloj);
     guardado = Promise.resolve();
-    $('#estado-guardado').textContent = '✓ Tu resultado ya está en el ranking';
     mostrarResultadoFinal();
+    avanzandoPregunta = false;
     return;
   }
   indiceActual += 1;
   renderizarPregunta();
+  avanzandoPregunta = false;
 }
 
 function mostrarResultadoFinal() {
   $('#puntaje-final').textContent = `${puntajeTotal}/100`;
+  $('#puntaje-ticket').textContent = `${puntajeTotal}/100`;
   $('#tiempo-final').textContent = formatoTiempo(tiempoFinal);
-  const porcentaje = puntajeTotal;
-  $('#puntaje-mensaje').textContent = porcentaje === 100 ? `¡${nombreJugador}, conoces a Pipa como nadie!` : porcentaje >= 70 ? `¡Muy bien, ${nombreJugador}! Conoces bastante a Pipa.` : porcentaje >= 40 ? `Buen intento, ${nombreJugador}. Aún quedan secretos por descubrir.` : `Gracias por jugar, ${nombreJugador}. ¡Toca conocer mejor a Pipa!`;
+  const final = $('#pantalla-final');
+  temporizadoresFinales.forEach(clearTimeout);
+  temporizadoresFinales = [];
+  final.classList.remove('final-secuencia', 'final-puntaje-compacto', 'final-asistencia-lista', 'final-invitacion-protagonista');
   mostrarPantalla('#pantalla-final');
+  if (prefiereMenosMovimiento()) {
+    final.classList.add('final-secuencia', 'final-puntaje-compacto', 'final-asistencia-lista');
+    return;
+  }
+  requestAnimationFrame(() => final.classList.add('final-secuencia'));
+  temporizadoresFinales.push(setTimeout(() => final.classList.add('final-puntaje-compacto'), 1250));
+  temporizadoresFinales.push(setTimeout(() => final.classList.add('final-asistencia-lista'), 2180));
 }
 
-async function confirmarAsistencia(respuesta, boton) {
+function seleccionarAsistencia(boton) {
+  const respuesta = boton.dataset.asistencia;
+  const confirmacion = $('#confirmacion-final');
+  confirmacion.style.display = 'none';
+  confirmacion.classList.remove('error');
+  confirmacion.textContent = '';
+  $$('.btn-asistencia').forEach(elemento => elemento.classList.toggle('activo', elemento === boton));
+  if (respuesta === 'Sí') {
+    const formulario = $('#form-identidad');
+    formulario.hidden = false;
+    $('#input-nombre-completo').value = nombreJugador;
+    $('#error-identidad').textContent = '';
+    requestAnimationFrame(() => formulario.classList.add('visible'));
+    const nombreCompleto = nombreJugador.trim().split(/\s+/).length >= 2;
+    (nombreCompleto ? $('#input-dni') : $('#input-nombre-completo')).focus();
+    return;
+  }
+  $('#form-identidad').hidden = true;
+  $('#form-identidad').classList.remove('visible');
+  confirmarAsistencia('No', boton);
+}
+
+async function confirmarAsistencia(respuesta, boton, identidad = {}) {
   $$('.btn-asistencia').forEach(elemento => { elemento.classList.remove('activo'); elemento.disabled = true; });
   boton.classList.add('activo');
+  $('#btn-confirmar-asistencia').disabled = true;
   const confirmacion = $('#confirmacion-final');
+  confirmacion.classList.remove('error');
   confirmacion.style.display = 'block';
   confirmacion.textContent = 'Guardando tu respuesta…';
   try {
     await guardado;
-    await api('asistencia', {id: sesion, token: tokenSesion, asistencia: respuesta});
+    await api('asistencia', {id: sesion, token: tokenSesion, asistencia: respuesta, ...identidad});
   } catch (error) {
-    confirmacion.textContent = 'No pudimos guardar tu respuesta. Inténtalo otra vez.';
+    if (respuesta === 'Sí') {
+      confirmacion.style.display = 'none';
+      $('#error-identidad').textContent = 'No pudimos guardar tus datos. Revisa la información e inténtalo otra vez.';
+    } else {
+      confirmacion.classList.add('error');
+      confirmacion.textContent = 'No pudimos guardar tu respuesta. Revisa la conexión e inténtalo otra vez.';
+    }
     $$('.btn-asistencia').forEach(elemento => elemento.disabled = false);
+    $('#btn-confirmar-asistencia').disabled = false;
     return;
   }
+  confirmacion.classList.remove('error');
   $('#bloque-asistencia').style.display = 'none';
-  if (respuesta === 'Sí' || respuesta === 'Tal vez') {
-    confirmacion.textContent = respuesta === 'Sí' ? `¡Nos vemos en la fiesta, ${nombreJugador}! Tu asistencia quedó confirmada 🎉` : `¡Ojalá puedas venir, ${nombreJugador}! Guarda los detalles por si te animas 💜`;
-    $('#detalles-evento').classList.add('visible');
+  if (respuesta === 'Sí') {
+    $('#input-nombre-completo').value = '';
+    $('#input-dni').value = '';
+    confirmacion.textContent = `Asistencia confirmada, ${nombreJugador}.`;
+    const final = $('#pantalla-final');
+    const invitacion = $('#detalles-evento');
+    final.classList.add('final-invitacion-protagonista');
+    invitacion.classList.add('visible');
+    cargarRankingPrevio();
+    if (!prefiereMenosMovimiento()) {
+      temporizadoresFinales.push(setTimeout(() => invitacion.scrollIntoView({behavior: 'smooth', block: 'center'}), 280));
+    }
     $('#btn-rehacer-solo').classList.remove('visible');
   } else {
-    confirmacion.textContent = `Gracias por avisar, ${nombreJugador}. ¡Te vamos a extrañar! 💜`;
+    confirmacion.textContent = `Gracias por avisar, ${nombreJugador}. Te vamos a extrañar.`;
     $('#detalles-evento').classList.remove('visible');
     $('#btn-rehacer-solo').classList.add('visible');
   }
 }
 
+async function cargarRankingPrevio() {
+  const lista = $('#ranking-previo-lista');
+  lista.innerHTML = '<li class="ranking-cargando">Actualizando posiciones…</li>';
+  try {
+    await guardado.catch(() => {});
+    const filas = await api('ranking');
+    const podio = filas.slice(0, 3);
+    if (!podio.length) {
+      lista.innerHTML = '<li class="ranking-cargando">Todavía no hay posiciones.</li>';
+      return;
+    }
+    const fragmento = document.createDocumentFragment();
+    podio.forEach((fila, indice) => {
+      const item = document.createElement('li');
+      if (fila.id === sesion) item.classList.add('yo');
+      const posicion = document.createElement('span');
+      const premios = ['🏆', '🥈', '🥉'];
+      const etiquetas = ['Primer puesto', 'Segundo puesto', 'Tercer puesto'];
+      posicion.className = `ranking-premio ranking-premio-${indice + 1}`;
+      posicion.textContent = premios[indice];
+      posicion.setAttribute('role', 'img');
+      posicion.setAttribute('aria-label', etiquetas[indice]);
+      const nombre = document.createElement('span');
+      nombre.className = 'ranking-nombre';
+      nombre.textContent = fila.nombre;
+      const puntos = document.createElement('strong');
+      puntos.textContent = `${fila.puntaje} pts`;
+      item.append(posicion, nombre, puntos);
+      fragmento.append(item);
+    });
+    lista.replaceChildren(fragmento);
+  } catch (error) {
+    lista.innerHTML = '<li class="ranking-cargando">No pudimos actualizar el podio.</li>';
+  }
+}
+
+$('#form-identidad').addEventListener('submit', evento => {
+  evento.preventDefault();
+  const nombreCompleto = $('#input-nombre-completo').value.trim().replace(/\s+/g, ' ');
+  const dni = $('#input-dni').value.trim();
+  if (nombreCompleto.split(' ').length < 2) {
+    $('#error-identidad').textContent = 'Escribe tu nombre completo.';
+    $('#input-nombre-completo').focus();
+    return;
+  }
+  if (!/^\d{8}$/.test(dni)) {
+    $('#error-identidad').textContent = 'El DNI debe tener 8 dígitos.';
+    $('#input-dni').focus();
+    return;
+  }
+  $('#error-identidad').textContent = '';
+  confirmarAsistencia('Sí', $('[data-asistencia="Sí"]'), {nombreCompleto, dni});
+});
+
+$('#input-dni').addEventListener('input', evento => {
+  evento.target.value = evento.target.value.replace(/\D/g, '').slice(0, 8);
+  $('#error-identidad').textContent = '';
+});
+$('#input-nombre-completo').addEventListener('input', () => { $('#error-identidad').textContent = ''; });
+
 async function abrirRanking() {
   const dialogo = $('#ranking');
-  if (!dialogo.open) dialogo.showModal();
+  if (!dialogo.open) {
+    dialogo.classList.remove('cerrando');
+    dialogo.showModal();
+  }
   const contenido = $('#ranking-contenido');
   contenido.textContent = 'Cargando ranking…';
   try {
@@ -376,10 +540,28 @@ async function abrirRanking() {
   }
 }
 
+function cerrarRanking() {
+  const dialogo = $('#ranking');
+  if (!dialogo.open || dialogo.classList.contains('cerrando')) return;
+  if (prefiereMenosMovimiento()) {
+    dialogo.close();
+    return;
+  }
+  dialogo.classList.add('cerrando');
+  window.setTimeout(() => {
+    if (dialogo.open) dialogo.close();
+    dialogo.classList.remove('cerrando');
+  }, 280);
+}
+
 $('#btn-reset').addEventListener('click', resetear);
 $('.marca').addEventListener('click', evento => { evento.preventDefault(); resetear(); });
 $$('[data-rehacer]').forEach(boton => boton.addEventListener('click', resetear));
-$$('.btn-asistencia').forEach(boton => boton.addEventListener('click', () => confirmarAsistencia(boton.dataset.asistencia, boton)));
+$$('.btn-asistencia').forEach(boton => boton.addEventListener('click', () => seleccionarAsistencia(boton)));
 $('#btn-ver-ranking').addEventListener('click', abrirRanking);
 $('#btn-actualizar-ranking').addEventListener('click', abrirRanking);
-$('#cerrar-ranking').addEventListener('click', () => $('#ranking').close());
+$('#cerrar-ranking').addEventListener('click', cerrarRanking);
+$('#ranking').addEventListener('cancel', evento => {
+  evento.preventDefault();
+  cerrarRanking();
+});

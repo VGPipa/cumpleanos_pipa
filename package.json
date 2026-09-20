@@ -9,6 +9,7 @@
   "packageManager": "pnpm@10.17.1",
   "scripts": {
     "build": "node scripts/build.mjs",
+    "demo": "node scripts/demo-server.mjs",
     "test": "node --test"
   },
   "dependencies": {

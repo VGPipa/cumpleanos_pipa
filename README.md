@@ -12,6 +12,10 @@ Juego público de 10 preguntas, ranking por puntaje y tiempo, y confirmación de
 
 Las imágenes optimizadas están en `public/imagenes/`; las originales permanecen en `Fotos/`. La invitación está en `public/invitacion-cumpleanos-pipa.png`.
 
+## Migraciones
+
+Aplicar las migraciones de `supabase/migrations/` en orden antes de desplegar el frontend. Las tres últimas habilitan la selección uniforme, guardan nombre completo y DNI para los invitados confirmados y calculan puntaje completo, parcial o cero. El código de `api/asistencia.js` requiere la función `pipa_submit_rsvp_with_identity`; por eso la base debe actualizarse antes que Vercel.
+
 ## Variables de entorno
 
 Configurar en Vercel para Production, Preview y Development:
@@ -40,6 +44,12 @@ Para probar las Vercel Functions localmente, crear `.env.local` a partir de `.en
 corepack pnpm dlx vercel dev
 ```
 
+Para revisar el flujo visual sin credenciales, usar el demo local. Mantiene las claves del quiz en el proceso de servidor, no en el navegador, y no persiste datos:
+
+```bash
+corepack pnpm demo
+```
+
 ## Despliegue
 
 Crear un proyecto Vercel independiente conectado a `VGPipa/cumpleanos_pipa`, con Framework Preset `Other`, rama de producción `main` y directorio raíz `./`.
@@ -58,7 +68,7 @@ Para publicarlo sin reemplazar la web principal, el proyecto que actualmente con
   "rewrites": [
     {
       "source": "/cumpleanos-pipa/:path*",
-      "destination": "https://cumpleanos-pipa.vercel.app/:path*"
+      "destination": "https://cumpleanospipa.vercel.app/:path*"
     }
   ]
 }

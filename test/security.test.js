@@ -3,12 +3,15 @@ import assert from 'node:assert/strict';
 import {
   createWriteToken,
   hashWriteToken,
+  normalizeDni,
+  normalizeGuestFullName,
   normalizePlayerName,
   normalizeQuestionPosition,
   normalizeRsvp,
   normalizeSelections,
   requireSession
 } from '../api/_lib/security.js';
+import { calculateQuestionScore } from '../api/_lib/scoring.js';
 
 test('creates an opaque token and stores only a sha256 hash', () => {
   const token = createWriteToken();
@@ -36,9 +39,21 @@ test('validates session identity and question answers', () => {
   assert.throws(() => normalizeSelections(['A', 'A']));
 });
 
-test('maps only the three supported RSVP values', () => {
+test('maps only yes and no RSVP values and validates confirmed guest identity', () => {
   assert.equal(normalizeRsvp('Sí'), 'yes');
-  assert.equal(normalizeRsvp('Tal vez'), 'maybe');
   assert.equal(normalizeRsvp('No'), 'no');
+  assert.throws(() => normalizeRsvp('Tal vez'));
   assert.throws(() => normalizeRsvp('Quizás'));
+  assert.equal(normalizeGuestFullName('  Victor   Grados  '), 'Victor Grados');
+  assert.throws(() => normalizeGuestFullName('Victor'));
+  assert.equal(normalizeDni('12345678'), '12345678');
+  assert.throws(() => normalizeDni('1234'));
+});
+
+test('awards full, partial, or zero points according to selection overlap', () => {
+  assert.equal(calculateQuestionScore(['B'], ['B']), 10);
+  assert.equal(calculateQuestionScore(['A', 'B'], ['B']), 5);
+  assert.equal(calculateQuestionScore(['A'], ['B']), 0);
+  assert.equal(calculateQuestionScore(['A'], ['A', 'B']), 5);
+  assert.equal(calculateQuestionScore(['A', 'B'], ['A', 'B']), 10);
 });
