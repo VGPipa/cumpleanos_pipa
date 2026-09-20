@@ -116,7 +116,7 @@ const $$ = selector => [...document.querySelectorAll(selector)];
 const pantallas = $$('.pantalla');
 const prefiereMenosMovimiento = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// La primera carga usa el mismo estado visual que el botón Resetear.
+// La primera carga muestra el estado inicial del reto.
 mostrarPantalla('#pantalla-inicio');
 
 function mostrarPantalla(selector) {
@@ -554,7 +554,6 @@ function cerrarRanking() {
   }, 280);
 }
 
-$('#btn-reset').addEventListener('click', resetear);
 $('.marca').addEventListener('click', evento => { evento.preventDefault(); resetear(); });
 $$('[data-rehacer]').forEach(boton => boton.addEventListener('click', resetear));
 $$('.btn-asistencia').forEach(boton => boton.addEventListener('click', () => seleccionarAsistencia(boton)));

@@ -91,11 +91,14 @@ test('RSVP collects identity only for confirmed guests and removes the maybe opt
   assert.match(migration, /pipa_submit_rsvp_with_identity/);
 });
 
-test('a started game cannot be reset from the client controls', async () => {
+test('the global reset button is absent and a started game cannot restart from client controls', async () => {
+  const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
   const app = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
   const css = await readFile(new URL('../public/styles.css', import.meta.url), 'utf8');
+  assert.doesNotMatch(html, /id="btn-reset"|>\s*Resetear\s*</);
+  assert.doesNotMatch(app, /\$\('#btn-reset'\)/);
   assert.match(app, /if \(sesion \|\| nombreJugador\) return;/);
-  assert.match(css, /\.partida-iniciada #btn-reset\{display:none\}/);
+  assert.doesNotMatch(css, /\.btn-reset|#btn-reset/);
   assert.match(css, /\.partida-iniciada \[data-rehacer\]/);
   assert.match(css, /input:focus-visible\{outline-color:var\(--lila\)\}/);
 });
